@@ -56,30 +56,38 @@ public class GameProgress: ObservableObject {
     }
     
     private func saveProgress() {
-        let unlockedData = unlockedLevels.mapValues { $0 }
+        let unlockedData: [String: Int] = Dictionary(uniqueKeysWithValues: unlockedLevels.map { 
+            ($0.key.rawValue, $0.value)
+        })
         defaults.set(unlockedData, forKey: unlockedLevelsKey)
         
-        let bestTimesData = bestTimes.mapValues { $0.mapValues { $0 } }
+        var bestTimesData: [String: [String: TimeInterval]] = [:]
+        for (difficulty, times) in bestTimes {
+            let timesDict: [String: TimeInterval] = Dictionary(uniqueKeysWithValues: times.map { 
+                (String($0.key), $0.value)
+            })
+            bestTimesData[difficulty.rawValue] = timesDict
+        }
         defaults.set(bestTimesData, forKey: bestTimesKey)
     }
     
     private func loadProgress() {
-        if let unlockedData = defaults.object(forKey: unlockedLevelsKey) as? [String: Int] {
+        if let unlockedData = defaults.dictionary(forKey: unlockedLevelsKey) as? [String: Int] {
             unlockedLevels = Dictionary(uniqueKeysWithValues: unlockedData.compactMap { key, value in
                 guard let difficulty = Difficulty(rawValue: key) else { return nil }
                 return (difficulty, value)
             })
         }
         
-        if let bestTimesData = defaults.object(forKey: bestTimesKey) as? [String: [String: TimeInterval]] {
+        if let bestTimesData = defaults.dictionary(forKey: bestTimesKey) as? [String: [String: TimeInterval]] {
+            bestTimes = [:]
             for (diffKey, levelTimes) in bestTimesData {
-                if let difficulty = Difficulty(rawValue: diffKey) {
-                    let convertedTimes = Dictionary<Int, TimeInterval>(uniqueKeysWithValues: levelTimes.compactMap { levelKey, time in
-                        guard let level = Int(levelKey) else { return nil }
-                        return (level, time)
-                    })
-                    bestTimes[difficulty] = convertedTimes
-                }
+                guard let difficulty = Difficulty(rawValue: diffKey) else { continue }
+                let convertedTimes = Dictionary<Int, TimeInterval>(uniqueKeysWithValues: levelTimes.compactMap { levelKey, time in
+                    guard let level = Int(levelKey) else { return nil }
+                    return (level, time)
+                })
+                bestTimes[difficulty] = convertedTimes
             }
         }
     }

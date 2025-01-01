@@ -86,30 +86,62 @@ struct SudokuBoard: View {
     @Binding var selectedCell: (row: Int, col: Int)?
     
     var body: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: 0.5) {
             ForEach(0..<9) { row in
-                HStack(spacing: 1) {
+                HStack(spacing: 0.5) {
                     ForEach(0..<9) { col in
                         CellView(
                             number: game.grid[row][col],
                             isSelected: selectedCell?.row == row && selectedCell?.col == col,
+                            isHighlighted: isHighlighted(row: row, col: col),
                             isInitial: game.isInitialNumber(at: row, col: col),
                             hasError: game.errorCells.contains("\(row),\(col)")
                         )
+                        .overlay(
+                            Group {
+                                if col % 3 == 2 && col < 8 {
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 1.5)
+                                        .offset(x: 17.5)
+                                }
+                            }
+                        )
                         .onTapGesture {
                             selectedCell = (row, col)
+                            if !game.isInitialNumber(at: row, col: col) && game.grid[row][col] == nil {
+                                if let autoFillNumber = game.getAutoFillNumber(at: row, col: col) {
+                                    game.setNumber(autoFillNumber, at: row, col: col)
+                                }
+                            }
                         }
                     }
                 }
+                .overlay(
+                    Group {
+                        if row % 3 == 2 && row < 8 {
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(height: 1.5)
+                                .offset(y: 17.5)
+                        }
+                    }
+                )
             }
         }
-        .background(Color.black)
+        .background(Color.gray.opacity(0.1))
+    }
+    
+    private func isHighlighted(row: Int, col: Int) -> Bool {
+        guard let selected = selectedCell else { return false }
+        return row == selected.row || col == selected.col
     }
 }
 
 struct CellView: View {
     let number: Int?
     let isSelected: Bool
+    let isHighlighted: Bool
     let isInitial: Bool
     let hasError: Bool
     
@@ -123,15 +155,22 @@ struct CellView: View {
                 Text("\(number)")
                     .font(.title2)
                     .foregroundColor(textColor)
+                    .fontWeight(isInitial ? .bold : .regular)
             }
         }
+        .overlay(
+            Rectangle()
+                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+        )
     }
     
     private var backgroundColor: Color {
         if isSelected {
-            return .blue.opacity(0.3)
+            return .blue.opacity(0.2)
         } else if hasError {
-            return .red.opacity(0.2)
+            return .red.opacity(0.15)
+        } else if isHighlighted {
+            return .gray.opacity(0.05)
         } else {
             return .white
         }

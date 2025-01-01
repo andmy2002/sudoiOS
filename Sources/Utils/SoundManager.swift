@@ -20,4 +20,4 @@ class SoundManager {
     func playErrorSound() {
         AudioServicesPlaySystemSound(1053) // 错误音效
     }
-} 
+}
